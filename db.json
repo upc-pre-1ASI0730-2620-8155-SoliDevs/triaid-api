@@ -284,6 +284,18 @@
       "docType": "dni",
       "dni": "33333333",
       "id": 6
+    },
+    {
+      "sinDni": false,
+      "docType": "dni",
+      "dni": "21321321",
+      "names": "Hernan",
+      "surnames": "huatra",
+      "birth": "1992-10-10",
+      "sex": "M",
+      "phone": "",
+      "address": "",
+      "id": 7
     }
   ],
   "episodes": [
@@ -519,6 +531,13 @@
       },
       "confirmed": true,
       "vitalsConfirmedAt": "2026-10-05T20:49:40.296Z"
+    },
+    {
+      "id": "EP-261006-0001",
+      "key": "21321321",
+      "arrival": "2026-10-06T14:18:34.092Z",
+      "vitals": {},
+      "confirmed": false
     }
   ],
   "devices": [
