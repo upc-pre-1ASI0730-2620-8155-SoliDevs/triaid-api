@@ -38,3 +38,17 @@ const originalWrite = router.db.write.bind(router.db)
 router.db.write = () => { scheduleBackup(); return originalWrite() }
 
 server.listen(PORT, () => console.log('Tri-Aid API (json-server) on port', PORT))
+
+/**
+ * Diagnostic endpoint: reports runtime git availability and backup config.
+ */
+server.get('/api/v1/__diag', (req, res) => {
+  const fs = require('fs')
+  const gitDir = fs.existsSync(path.join(__dirname, '.git'))
+  res.json({
+    cwd: __dirname,
+    isGitRepo: gitDir,
+    hasBackupToken: !!process.env.GIT_BACKUP_TOKEN,
+    node: process.version
+  })
+})
