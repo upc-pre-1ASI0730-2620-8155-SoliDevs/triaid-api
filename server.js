@@ -23,13 +23,13 @@ server.get('/api/v1/__diag', (req, res) => {
 
 server.get('/api/v1/__backup', (req, res) => {
   const opts = { cwd: __dirname, env: { ...process.env, GIT_AUTHOR_NAME: 'triaid-api', GIT_AUTHOR_EMAIL: 'api@triaid.dev', GIT_COMMITTER_NAME: 'triaid-api', GIT_COMMITTER_EMAIL: 'api@triaid.dev' } }
+  try { fs.unlinkSync(path.join(__dirname, '.git', 'index.lock')) } catch (e) {}
   const run = (cmd, args) => new Promise((r) => execFile(cmd, args, opts, (err, so, se) => r({ cmd: [cmd].concat(args).join(' '), err: err ? (err.message + ' | ' + se) : null, out: so })))
-  Promise.all([
-    run('git', ['status', '--short', 'db.json']),
-    run('git', ['add', 'db.json']),
-    run('git', ['commit', '-m', 'chore(data): persist db state']),
-    run('git', ['push', 'https://x-access-token:' + process.env.GIT_BACKUP_TOKEN + '@github.com/upc-pre-1ASI0730-2620-8155-SoliDevs/triaid-api.git', 'HEAD'])
-  ]).then((steps) => res.json(steps))
+  const steps = []
+  steps.push(await run('git', ['add', 'db.json']))
+  steps.push(await run('git', ['commit', '-m', 'chore(data): persist db state']))
+  steps.push(await run('git', ['push', 'https://x-access-token:' + process.env.GIT_BACKUP_TOKEN + '@github.com/upc-pre-1ASI0730-2620-8155-SoliDevs/triaid-api.git', 'HEAD:refs/heads/main']))
+  res.json(steps)
 })
 
 // File-based router: lowdb writes db.json on every mutation (real disk).
@@ -47,17 +47,16 @@ function scheduleBackup() {
   clearTimeout(timer)
   timer = setTimeout(() => {
     const opts = { cwd: __dirname, env: { ...process.env, GIT_AUTHOR_NAME: 'triaid-api', GIT_AUTHOR_EMAIL: 'api@triaid.dev', GIT_COMMITTER_NAME: 'triaid-api', GIT_COMMITTER_EMAIL: 'api@triaid.dev' } }
-    execFile('git', ['add', 'db.json'], opts, (e) => {
-      if (e) return console.error('git add failed:', e.message)
-      execFile('git', ['commit', '-m', 'chore(data): persist db state'], opts, (e) => {
-        if (e && !/nothing to commit/.test(e.message || '')) console.error('git commit:', e.message)
-        const url = `https://x-access-token:${process.env.GIT_BACKUP_TOKEN}@github.com/upc-pre-1ASI0730-2620-8155-SoliDevs/triaid-api.git`
-        execFile('git', ['push', url, 'HEAD'], opts, (err) => {
-          if (err) console.error('backup push failed:', err.message)
-          else console.log('db.json backed up at', new Date().toISOString())
-        })
-      })
-    })
+    try { fs.unlinkSync(path.join(__dirname, '.git', 'index.lock')) } catch (e) {}
+    const runStep = (cmd, args) => new Promise((r) => execFile(cmd, args, opts, (err, so, se) => r({ err, so, se })))
+    ;(async () => {
+      await runStep('git', ['add', 'db.json'])
+      await runStep('git', ['commit', '-m', 'chore(data): persist db state'])
+      const url = `https://x-access-token:${process.env.GIT_BACKUP_TOKEN}@github.com/upc-pre-1ASI0730-2620-8155-SoliDevs/triaid-api.git`
+      const push = await runStep('git', ['push', url, 'HEAD:refs/heads/main'])
+      if (push.err) console.error('backup push failed:', push.se || push.err.message)
+      else console.log('db.json backed up at', new Date().toISOString())
+    })()
   }, 3000)
 }
 const originalWrite = router.db.write.bind(router.db)
