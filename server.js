@@ -21,7 +21,7 @@ server.get('/api/v1/__diag', (req, res) => {
   })
 })
 
-server.get('/api/v1/__backup', (req, res) => {
+server.get('/api/v1/__backup', async (req, res) => {
   const opts = { cwd: __dirname, env: { ...process.env, GIT_AUTHOR_NAME: 'triaid-api', GIT_AUTHOR_EMAIL: 'api@triaid.dev', GIT_COMMITTER_NAME: 'triaid-api', GIT_COMMITTER_EMAIL: 'api@triaid.dev' } }
   try { fs.unlinkSync(path.join(__dirname, '.git', 'index.lock')) } catch (e) {}
   const run = (cmd, args) => new Promise((r) => execFile(cmd, args, opts, (err, so, se) => r({ cmd: [cmd].concat(args).join(' '), err: err ? (err.message + ' | ' + se) : null, out: so })))
