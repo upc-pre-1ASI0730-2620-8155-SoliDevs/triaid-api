@@ -21,6 +21,17 @@ server.get('/api/v1/__diag', (req, res) => {
   })
 })
 
+server.get('/api/v1/__backup', (req, res) => {
+  const opts = { cwd: __dirname, env: { ...process.env, GIT_AUTHOR_NAME: 'triaid-api', GIT_AUTHOR_EMAIL: 'api@triaid.dev', GIT_COMMITTER_NAME: 'triaid-api', GIT_COMMITTER_EMAIL: 'api@triaid.dev' } }
+  const run = (cmd, args) => new Promise((r) => execFile(cmd, args, opts, (err, so, se) => r({ cmd: [cmd].concat(args).join(' '), err: err ? (err.message + ' | ' + se) : null, out: so })))
+  Promise.all([
+    run('git', ['status', '--short', 'db.json']),
+    run('git', ['add', 'db.json']),
+    run('git', ['commit', '-m', 'chore(data): persist db state']),
+    run('git', ['push', 'https://x-access-token:' + process.env.GIT_BACKUP_TOKEN + '@github.com/upc-pre-1ASI0730-2620-8155-SoliDevs/triaid-api.git', 'HEAD'])
+  ]).then((steps) => res.json(steps))
+})
+
 // File-based router: lowdb writes db.json on every mutation (real disk).
 const router = jsonServer.router(path.join(__dirname, 'db.json'))
 server.use('/api/v1', router)
