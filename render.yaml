@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: triaid-api
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/v1/specialties
+    envVars:
+      - key: GIT_BACKUP_TOKEN
+        sync: false
